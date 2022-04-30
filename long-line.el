@@ -149,7 +149,7 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
 (defun long-line-prev-long-line ()
   "Move to the previous long line greater than `fill-column'."
   (interactive)
-  (funcall-interactively (long-line-next-long-line -1)))
+  (funcall-interactively 'long-line-next-long-line -1))
 
 ;;;###autoload
 (defun long-line-next-long-line (&optional arg)
