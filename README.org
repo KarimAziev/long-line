@@ -1,0 +1,46 @@
+* long-line
+
+An Emacs minor mode which show or hide indicator depending whether the buffer contain lines longer then value of ~fill-column~.
+
+** Requirements
+
+- Emacs Emacs 27.1
+
+** Installation
+
+*** with straight-use-package
+
+Put the following in your init file:
+
+#+begin_src elisp
+(use-package long-line
+  :straight (long-line
+             :type git
+             :host github
+             :repo "KarimAziev/long-line")
+  :hook ((emacs-lisp-mode . long-line-mode)))
+#+end_src
+
+*** Manual
+
+Or download repository and add it to your ~load-path~.
+
+#+begin_src elisp
+
+(add-to-list 'load-path "/path/to/long-line/")
+
+(require 'long-line)
+(add-hook 'emacs-lisp-mode-hook 'long-line-mode)
+#+end_src
+
+** Commands
+
++ ~long-line-show-or-hide-indicator~
+Show `fill-column' indicator if buffer contain lines longer then `fill-column'.
+If no long lines found, hide indicator.
+
++ ~long-line-next-long-line~ (&optional arg)
+Move to the ARGth next long line greater than value of ~fill-column~.
+
++ ~long-line-prev-long-line~
+Move to the previous long line greater than value of ~fill-column~.
