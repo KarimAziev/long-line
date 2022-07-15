@@ -130,6 +130,47 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
        (unless noerror
          (signal (car err) (cdr err)))))))
 
+(defvar long-line-doc '((defcustom . 3)
+                        (defvar . 3)
+                        (defvar-local . 3)
+                        (defun . 3)
+                        (defmacro . 3)
+                        (defsubst . 3)
+                        (define-derived-mode . 4)
+                        (define-generic-mode . 7)
+                        (ert-deftest . 3)
+                        (cl-defun . 3)
+                        (cl-defsubst . 3)
+                        (cl-defmacro . 3)
+                        (cl-defmethod . 5)
+                        (defalias . 3)
+                        (defhydra . 3)
+                        (cl-defstruct . 2)
+                        (define-derived-mode . 4)
+                        (define-compilation-mode . 3)
+                        (easy-mmode-define-minor-mode . 2)
+                        (define-minor-mode . 2)
+                        (define-generic-mode . 7)))
+
+(defun long-line-on-doc-string-p ()
+  "Return non-nil if point is inside doc string."
+  (save-excursion
+    (when-let* ((pos (point))
+                (char (nth 3 (syntax-ppss (point)))))
+      (when (progn (ignore-errors (up-list (- 1) t t))
+                   (let ((new-pos (point)))
+                     (and (not (= pos new-pos))
+                          (equal char (char-after new-pos)))))
+        (when-let ((pos (save-excursion (when (long-line-move-with
+                                               'backward-up-list 1)
+                                          (let ((s (sexp-at-point)))
+                                            (when
+                                                (and (listp s)
+                                                     (symbolp (car s)))
+                                              (cdr (assq (car s)
+                                                         long-line-doc))))))))
+          (long-line-move-with 'backward-sexp pos))))))
+
 (defun long-line-get-current-length ()
 	"Get length of current line ignoring comments and strings."
   (save-excursion
@@ -139,11 +180,32 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
           line-length
         (backward-char (- line-length fill-column))
         (if (or
-             (nth 3 (syntax-ppss (point)))
-             (looking-back "\"" 1)
+             (when (nth 3 (syntax-ppss (point)))
+               (not (long-line-on-doc-string-p)))
              (nth 4 (syntax-ppss (point))))
             (1- fill-column)
           line-length)))))
+
+(defun long-line-move-with (fn &optional n)
+  "Move by calling FN N times.
+Return new position if changed, nil otherwise."
+  (unless n (setq n 1))
+  (when-let ((str-start (nth 8 (syntax-ppss (point)))))
+    (goto-char str-start))
+  (let ((init-pos (point))
+        (pos)
+        (count n))
+    (while (and (not (= count 0))
+                (when-let ((end (ignore-errors
+                                  (funcall fn)
+                                  (point))))
+                  (unless (= end (or pos init-pos))
+                    (setq pos end))))
+      (setq count (1- count)))
+    (if (= count 0)
+        pos
+      (goto-char init-pos)
+      nil)))
 
 ;;;###autoload
 (defun long-line-prev-long-line ()
