@@ -254,8 +254,7 @@ Return new position if changed, nil otherwise."
           (goto-char opoint)
           (message "Long line not found")
           (when display-fill-column-indicator
-            (display-fill-column-indicator-mode -1)))
-      (run-at-time 0.4 nil 'km-remove-overlay))))
+            (display-fill-column-indicator-mode -1))))))
 
 ;;;###autoload
 (defun long-line-show-or-hide-indicator ()
