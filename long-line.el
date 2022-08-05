@@ -47,6 +47,12 @@
 ;;; Code:
 
 (require 'display-fill-column-indicator)
+
+(defcustom long-line-highlight-line-p t
+  "Whether to highlight long line after `long-line-next-long-line'."
+  :group 'long-line
+  :type 'boolean)
+
 (defun long-line-re-search-backward-inner (regexp &optional bound count)
   "This function is helper for `long-line-re-search-backward'.
 Search backward from point for regular expression REGEXP.
@@ -85,7 +91,9 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
       (while (and (> (current-column) fill-column)
                   (long-line-re-search-backward "[(]+" line-beg t 1)))
       (when (looking-back "['`]" 0)
-        (forward-char -1)))))
+        (forward-char -1))
+      (when long-line-highlight-line-p
+        (pulse-momentary-highlight-one-line)))))
 
 (defun long-line-re-search-forward-inner (regexp &optional bound count)
   "This function is helper for `long-line-re-search-forward'.
@@ -207,6 +215,18 @@ Return new position if changed, nil otherwise."
       (goto-char init-pos)
       nil)))
 
+(defun long-line-has-long-line-p ()
+  "Return t if buffer contain lines longer then the value of `fill-column'."
+  (save-excursion
+    (goto-char (point-min))
+    (forward-line 1)
+    (let ((arg 1))
+      (let ((line-length 0))
+        (while (and (<= line-length fill-column)
+                    (zerop (forward-line (if (< arg 0) -1 1))))
+          (setq line-length (long-line-get-current-length)))
+        (> line-length fill-column)))))
+
 ;;;###autoload
 (defun long-line-prev-long-line ()
   "Move to the previous long line greater than `fill-column'."
@@ -217,44 +237,30 @@ Return new position if changed, nil otherwise."
 (defun long-line-next-long-line (&optional arg)
   "Move to the ARGth next long line greater than `fill-column'."
   (interactive "p")
-  (or arg
-      (setq arg 1))
-  (let
-      ((opoint
-        (point))
-       (line-length 0))
-    (while
-        (and
-         (>= fill-column line-length)
-         (zerop
-          (forward-line
-           (if
-               (> 0 arg)
-               -1 1))))
+  (or arg (setq arg 1))
+  (let ((opoint (point))
+        (line-length 0))
+    (while (and (>= fill-column line-length)
+                (zerop (forward-line (if (> 0 arg) -1 1))))
       (setq line-length
             (long-line-get-current-length)))
-    (unwind-protect
-        (if
-            (> line-length fill-column)
-            (if
-                (> arg 1)
-                (long-line-next-long-line
-                 (1- arg))
-              (if
-                  (> -1 arg)
-                  (long-line-next-long-line
-                   (1- arg))
-                (unless display-fill-column-indicator
-                  (display-fill-column-indicator-mode 1))
-                (end-of-line 1)
-                (message
-                 (format "Long line of %d columns found" line-length))
-                (skip-chars-backward "  \n")
-                (long-line-find-place-to-split)))
-          (goto-char opoint)
-          (message "Long line not found")
-          (when display-fill-column-indicator
-            (display-fill-column-indicator-mode -1))))))
+    (cond
+     ((>= fill-column line-length)
+      (goto-char opoint)
+      (message "Long line not found")
+      (when display-fill-column-indicator
+        (long-line-show-or-hide-indicator)))
+     ((or (> arg 1)
+          (> -1 arg))
+      (long-line-next-long-line (1- arg)))
+     (t
+      (unless display-fill-column-indicator
+        (display-fill-column-indicator-mode 1))
+      (end-of-line 1)
+      (message
+       (format "Long line of %d columns found" line-length))
+      (skip-chars-backward "  \n")
+      (long-line-find-place-to-split)))))
 
 ;;;###autoload
 (defun long-line-show-or-hide-indicator ()
@@ -263,17 +269,7 @@ If buffer contain lines longer then the value of the variable `fill-column'
 show it, else hide."
   (interactive)
   (unless buffer-file-read-only
-    (save-excursion
-      (goto-char (point-min))
-      (forward-line 1)
-      (let ((arg 1))
-        (let ((line-length 0))
-          (while (and (<= line-length fill-column)
-                      (zerop (forward-line (if (< arg 0) -1 1))))
-            (setq line-length (long-line-get-current-length)))
-          (display-fill-column-indicator-mode
-           (if (> line-length fill-column)
-               1 -1)))))))
+    (display-fill-column-indicator-mode (if (long-line-has-long-line-p) 1 -1))))
 
 ;;;###autoload
 (define-minor-mode long-line-mode
