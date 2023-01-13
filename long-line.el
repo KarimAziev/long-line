@@ -44,9 +44,52 @@
 ;; M-x `long-line-prev-long-line'
 ;;      Move to the previous long line greater than `fill-column'.
 
+;;; Minor mode
+
+;; `long-line-mode'
+;;      Show or hide fill column indicator after save.
+;;      If buffer contain lines longer then the value of the variable `fill-column'
+;;      show it, else hide.
+
+;;; Commands
+
+;; M-x `long-line-show-or-hide-indicator'
+;;      Show or hide fill column indicator in current buffer.
+;;      If buffer contain lines longer then the value of the variable `fill-column'
+;;      show it, else hide.
+
+;; M-x `long-line-next-long-line' (&optional arg)
+;;      Move to the ARGth next long line greater than `fill-column'.
+
+;; M-x `long-line-prev-long-line'
+;;      Move to the previous long line greater than `fill-column'.
+
+;; M-x `long-line-next-or-prev-long'
+;;      Move to the next or previous long line greater than `fill-column'.
+
+;; M-x `long-line-prev-or-next-long'
+;;      Move to the previous or next long line greater than `fill-column'.
+
+;;; Customization
+
+;; `long-line-highlight-line-p'
+;;      Whether to highlight long line after `long-line-next-long-line'.
+
+;; `long-line-message-function'
+;;      Function to show messages.
+;;      Should accept the same arguments as `message'.
+
 ;;; Code:
 
 (require 'display-fill-column-indicator)
+
+(defcustom long-line-message-function 'message
+  "Function to show messages.
+Should accept the same arguments as `message'."
+  :type '(choice
+          (const :tag "None" nil)
+          (function :tag "Function"))
+  :group 'long-line)
 
 (defcustom long-line-highlight-line-p t
   "Whether to highlight long line after `long-line-next-long-line'."
@@ -83,7 +126,7 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
   (long-line-re-search-forward regexp bound noerror (if count (- count) -1)))
 
 (defun long-line-find-place-to-split ()
-	"Find place to split long line."
+  "Find place to split long line."
   (when (looking-back ")" 0)
     (let ((line-beg (save-excursion
                       (beginning-of-line)
@@ -180,7 +223,7 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
           (long-line-move-with 'backward-sexp pos))))))
 
 (defun long-line-get-current-length ()
-	"Get length of current line ignoring comments and strings."
+  "Get length of current line ignoring comments and strings."
   (save-excursion
     (let ((line-length (progn (end-of-line)
                               (current-column))))
@@ -227,6 +270,37 @@ Return new position if changed, nil otherwise."
           (setq line-length (long-line-get-current-length)))
         (> line-length fill-column)))))
 
+(defun long-line--cycle-next-or-prev (arg)
+  "Move to the previous or next ARGth long line greater than `fill-column'."
+  (or (long-line-next-long-line arg)
+      (when (long-line-has-long-line-p)
+        (if (> arg 0)
+            (goto-char (point-min))
+          (goto-char (point-max)))
+        (long-line-next-long-line arg))
+      (progn
+        (let ((line-len (long-line-get-current-length)))
+          (when (> line-len fill-column)
+            (when long-line-highlight-line-p
+              (pulse-momentary-highlight-one-line))
+            (when long-line-message-function
+              (funcall long-line-message-function
+                       "Long line of %d columns found"
+                       line-len)))
+          (long-line-show-or-hide-indicator)))))
+
+;;;###autoload
+(defun long-line-prev-or-next-long ()
+  "Move to the previous or next long line greater than `fill-column'."
+  (interactive)
+  (long-line--cycle-next-or-prev -1))
+
+;;;###autoload
+(defun long-line-next-or-prev-long ()
+  "Move to the next or previous long line greater than `fill-column'."
+  (interactive)
+  (long-line--cycle-next-or-prev 1))
+
 ;;;###autoload
 (defun long-line-prev-long-line ()
   "Move to the previous long line greater than `fill-column'."
@@ -244,23 +318,27 @@ Return new position if changed, nil otherwise."
                 (zerop (forward-line (if (> 0 arg) -1 1))))
       (setq line-length
             (long-line-get-current-length)))
-    (cond
-     ((>= fill-column line-length)
-      (goto-char opoint)
-      (message "Long line not found")
-      (when display-fill-column-indicator
-        (long-line-show-or-hide-indicator)))
-     ((or (> arg 1)
-          (> -1 arg))
-      (long-line-next-long-line (1- arg)))
-     (t
-      (unless display-fill-column-indicator
-        (display-fill-column-indicator-mode 1))
-      (end-of-line 1)
-      (message
-       (format "Long line of %d columns found" line-length))
-      (skip-chars-backward "  \n")
-      (long-line-find-place-to-split)))))
+    (cond ((>= fill-column line-length)
+           (goto-char opoint)
+           (when display-fill-column-indicator
+             (long-line-show-or-hide-indicator))
+           (when long-line-message-function
+             (funcall long-line-message-function "Long line not found"))
+           nil)
+          ((or (> arg 1)
+               (> -1 arg))
+           (long-line-next-long-line (1- arg))
+           (point))
+          (t
+           (unless display-fill-column-indicator
+             (display-fill-column-indicator-mode 1))
+           (end-of-line 1)
+           (when long-line-message-function
+             (funcall long-line-message-function "Long line of %d columns found"
+                      line-length))
+           (skip-chars-backward "  \n")
+           (long-line-find-place-to-split)
+           (point)))))
 
 ;;;###autoload
 (defun long-line-show-or-hide-indicator ()
