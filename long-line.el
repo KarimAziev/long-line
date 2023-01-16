@@ -3,7 +3,7 @@
 ;; Copyright (C) 2022 Karim Aziiev <karim.aziiev@gmail.com>
 
 ;; Author: Karim Aziiev <karim.aziiev@gmail.com>
-;; URL: https://github.com:KarimAziev/long-line
+;; URL: https://github.com/KarimAziev/long-line
 ;; Keywords: lisp, convenience
 ;; Version: 0.1.1
 ;; Package-Requires: ((emacs "27.1"))
@@ -22,6 +22,7 @@
 ;;
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 ;;; Commentary:
 
 ; An Emacs minor mode which show or hide indicator, depending whether
@@ -107,17 +108,16 @@ The optional argument COUNT is a number that indicates the
   search direction and the number of occurrences to search for."
   (let ((parse))
     (while (> count 0)
-      (with-syntax-table emacs-lisp-mode-syntax-table
-        (re-search-backward regexp bound)
-        (setq parse (syntax-ppss))
-        (cond ((and (or (nth 3 parse))
-                    (nth 8 parse))
-               (goto-char (nth 8 parse)))
-              ((and (nth 4 parse)
-                    (nth 8 parse))
-               (goto-char (nth 8 parse)))
-              (t
-               (setq count (1- count)))))))
+      (re-search-backward regexp bound)
+      (setq parse (syntax-ppss))
+      (cond ((and (or (nth 3 parse))
+                  (nth 8 parse))
+             (goto-char (nth 8 parse)))
+            ((and (nth 4 parse)
+                  (nth 8 parse))
+             (goto-char (nth 8 parse)))
+            (t
+             (setq count (1- count))))))
   (point))
 
 (defun long-line-re-search-backward (regexp &optional bound noerror count)
@@ -149,19 +149,18 @@ The optional argument COUNT is a number that indicates the
   search direction and the number of occurrences to search for."
   (let ((parse))
     (while (> count 0)
-      (with-syntax-table emacs-lisp-mode-syntax-table
-        (re-search-forward regexp bound)
-        (setq parse (syntax-ppss))
-        (cond ((and (nth 3 parse)
-                    (nth 8 parse))
-               (goto-char (nth 8 parse))
-               (forward-sexp))
-              ((and (nth 4 parse)
-                    (nth 8 parse))
-               (goto-char (nth 8 parse))
-               (forward-line))
-              (t
-               (setq count (1- count)))))))
+      (re-search-forward regexp bound)
+      (setq parse (syntax-ppss))
+      (cond ((and (nth 3 parse)
+                  (nth 8 parse))
+             (goto-char (nth 8 parse))
+             (forward-sexp))
+            ((and (nth 4 parse)
+                  (nth 8 parse))
+             (goto-char (nth 8 parse))
+             (forward-line))
+            (t
+             (setq count (1- count))))))
   (point))
 
 (defun long-line-re-search-forward (regexp &optional bound noerror count)
@@ -170,7 +169,8 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
   (unless count (setq count 1))
   (let ((init-point (point))
         (search-fun
-         (cond ((< count 0) (setq count (- count))
+         (cond ((< count 0)
+                (setq count (- count))
                 #'long-line-re-search-backward-inner)
                ((> count 0) #'long-line-re-search-forward-inner)
                (t #'ignore))))
@@ -179,29 +179,30 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
       (search-failed
        (goto-char init-point)
        (unless noerror
-         (signal (car err) (cdr err)))))))
+         (signal (car err)
+                 (cdr err)))))))
 
-(defvar long-line-doc '((defcustom . 3)
-                        (defvar . 3)
-                        (defvar-local . 3)
-                        (defun . 3)
-                        (defmacro . 3)
-                        (defsubst . 3)
-                        (define-derived-mode . 4)
-                        (define-generic-mode . 7)
-                        (ert-deftest . 3)
-                        (cl-defun . 3)
-                        (cl-defsubst . 3)
-                        (cl-defmacro . 3)
-                        (cl-defmethod . 5)
-                        (defalias . 3)
-                        (defhydra . 3)
-                        (cl-defstruct . 2)
-                        (define-derived-mode . 4)
-                        (define-compilation-mode . 3)
-                        (easy-mmode-define-minor-mode . 2)
-                        (define-minor-mode . 2)
-                        (define-generic-mode . 7)))
+(defvar long-line-doc '(("defcustom" . 3)
+                        ("defvar" . 3)
+                        ("defvar-local" . 3)
+                        ("defun" . 3)
+                        ("defmacro" . 3)
+                        ("defsubst" . 3)
+                        ("define-derived-mode" . 4)
+                        ("define-generic-mode" . 7)
+                        ("ert-deftest" . 3)
+                        ("cl-defun" . 3)
+                        ("cl-defsubst" . 3)
+                        ("cl-defmacro" . 3)
+                        ("cl-defmethod" . 5)
+                        ("defalias" . 3)
+                        ("defhydra" . 3)
+                        ("cl-defstruct" . 2)
+                        ("define-derived-mode" . 4)
+                        ("define-compilation-mode" . 3)
+                        ("easy-mmode-define-minor-mode" . 2)
+                        ("define-minor-mode" . 2)
+                        ("define-generic-mode" . 7)))
 
 (defun long-line-on-doc-string-p ()
   "Return non-nil if point is inside doc string."
@@ -212,14 +213,14 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
                    (let ((new-pos (point)))
                      (and (not (= pos new-pos))
                           (equal char (char-after new-pos)))))
-        (when-let ((pos (save-excursion (when (long-line-move-with
-                                               'backward-up-list 1)
-                                          (let ((s (sexp-at-point)))
-                                            (when
-                                                (and (listp s)
-                                                     (symbolp (car s)))
-                                              (cdr (assq (car s)
-                                                         long-line-doc))))))))
+        (when-let ((pos (save-excursion
+                          (when (long-line-move-with
+                                 'backward-up-list 1)
+                            (let ((s (sexp-at-point)))
+                              (when (and (listp s)
+                                         (symbolp (car s)))
+                                (cdr (assoc (car s)
+                                            long-line-doc))))))))
           (long-line-move-with 'backward-sexp pos))))))
 
 (defun long-line-get-current-length ()
@@ -263,12 +264,12 @@ Return new position if changed, nil otherwise."
   (save-excursion
     (goto-char (point-min))
     (forward-line 1)
-    (let ((arg 1))
-      (let ((line-length 0))
-        (while (and (<= line-length fill-column)
-                    (zerop (forward-line (if (< arg 0) -1 1))))
-          (setq line-length (long-line-get-current-length)))
-        (> line-length fill-column)))))
+    (let* ((arg 1)
+           (line-length 0))
+      (while (and (<= line-length fill-column)
+                  (zerop (forward-line (if (< arg 0) -1 1))))
+        (setq line-length (long-line-get-current-length)))
+      (> line-length fill-column))))
 
 (defun long-line--cycle-next-or-prev (arg)
   "Move to the previous or next ARGth long line greater than `fill-column'."
@@ -346,8 +347,8 @@ Return new position if changed, nil otherwise."
 If buffer contain lines longer then the value of the variable `fill-column'
 show it, else hide."
   (interactive)
-  (unless buffer-file-read-only
-    (display-fill-column-indicator-mode (if (long-line-has-long-line-p) 1 -1))))
+  (display-fill-column-indicator-mode
+   (if (long-line-has-long-line-p) 1 -1)))
 
 ;;;###autoload
 (define-minor-mode long-line-mode
@@ -359,9 +360,9 @@ show it, else hide."
   (if long-line-mode
       (progn
         (long-line-show-or-hide-indicator)
-        (add-hook 'after-save-hook 'long-line-show-or-hide-indicator nil
+        (add-hook 'after-save-hook #'long-line-show-or-hide-indicator nil
                   'local))
-    (remove-hook 'after-save-hook 'long-line-show-or-hide-indicator 'local)))
+    (remove-hook 'after-save-hook #'long-line-show-or-hide-indicator 'local)))
 
 (provide 'long-line)
 ;;; long-line.el ends here
