@@ -1,4 +1,4 @@
-;;; long-line.el --- Configure line -*- lexical-binding: t -*-
+;;; long-line.el --- Show and move to long lines -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2022 Karim Aziiev <karim.aziiev@gmail.com>
 

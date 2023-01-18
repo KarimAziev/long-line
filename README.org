@@ -11,14 +11,15 @@ An Emacs minor mode which show or hide indicator depending whether the buffer co
 *** with straight-use-package
 
 Put the following in your init file:
-
 #+begin_src elisp
 (use-package long-line
+  :bind ("C-c ." . long-line-transient)
   :straight (long-line
              :type git
              :host github
              :repo "KarimAziev/long-line")
-  :hook ((emacs-lisp-mode . long-line-mode)))
+  :hook
+  ((emacs-lisp-mode . long-line-mode)))
 #+end_src
 
 *** Manual
@@ -26,21 +27,24 @@ Put the following in your init file:
 Or download repository and add it to your ~load-path~.
 
 #+begin_src elisp
-
 (add-to-list 'load-path "/path/to/long-line/")
 
 (require 'long-line)
 (add-hook 'emacs-lisp-mode-hook 'long-line-mode)
 #+end_src
 
-** Minor mode
-
 *** ~long-line-mode~
 Show or hide fill column indicator after save. If buffer contain lines longer then the value of the variable =fill-column= show it, else hide.
+** Transient
+
+*** ~long-line-transient~
+Command dispatcher for =long-line-mode=.
 ** Commands
 
 *** ~long-line-show-or-hide-indicator~
 Show or hide fill column indicator in current buffer. If buffer contain lines longer then the value of the variable =fill-column= show it, else hide.
+*** ~long-line-transient-set-fill-column~
+Interactivelly set fill column.
 *** ~long-line-next-long-line~  (&optional arg)
 Move to the ARGth next long line greater than =fill-column=.
 *** ~long-line-prev-long-line~
@@ -55,8 +59,3 @@ Move to the previous or next long line greater than =fill-column=.
 Whether to highlight long line after =long-line-next-long-line=.
 *** ~long-line-message-function~
 Function to show messages. Should accept the same arguments as =message=.
-
-** Variables
-
-*** ~long-line-doc~
-
