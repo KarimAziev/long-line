@@ -83,7 +83,7 @@
 ;;; Code:
 
 (require 'display-fill-column-indicator)
-
+(require 'transient)
 (defcustom long-line-message-function 'message
   "Function to show messages.
 Should accept the same arguments as `message'."
@@ -219,7 +219,8 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
                             (let ((s (sexp-at-point)))
                               (when (and (listp s)
                                          (symbolp (car s)))
-                                (cdr (assoc (car s)
+                                (cdr (assoc (symbol-name
+                                             (car s))
                                             long-line-doc))))))))
           (long-line-move-with 'backward-sexp pos))))))
 
@@ -324,7 +325,8 @@ Return new position if changed, nil otherwise."
            (when display-fill-column-indicator
              (long-line-show-or-hide-indicator))
            (when long-line-message-function
-             (funcall long-line-message-function "Long line not found"))
+             (funcall long-line-message-function
+                      "Long line not found"))
            nil)
           ((or (> arg 1)
                (> -1 arg))
@@ -335,11 +337,24 @@ Return new position if changed, nil otherwise."
              (display-fill-column-indicator-mode 1))
            (end-of-line 1)
            (when long-line-message-function
-             (funcall long-line-message-function "Long line of %d columns found"
+             (funcall long-line-message-function
+                      "Long line of %d columns found"
                       line-length))
            (skip-chars-backward "  \n")
            (long-line-find-place-to-split)
            (point)))))
+
+(defun long-line-transient-set-fill-column ()
+  "Interactivelly set fill column."
+  (interactive)
+  (funcall-interactively
+   'set-fill-column
+   (read-number
+    (format
+     "Fill column (%s): "
+     fill-column)))
+  (when (eq transient-current-command 'long-line-transient)
+    (transient--redisplay)))
 
 ;;;###autoload
 (defun long-line-show-or-hide-indicator ()
@@ -355,14 +370,36 @@ show it, else hide."
   "Show or hide fill column indicator after save.
 If buffer contain lines longer then the value of the variable `fill-column'
 show it, else hide."
-  :lighter " Longl"
+  :lighter " Lg-ln"
   :global nil
   (if long-line-mode
       (progn
         (long-line-show-or-hide-indicator)
-        (add-hook 'after-save-hook #'long-line-show-or-hide-indicator nil
+        (add-hook 'after-save-hook #'long-line-show-or-hide-indicator
+                  nil
                   'local))
-    (remove-hook 'after-save-hook #'long-line-show-or-hide-indicator 'local)))
+    (remove-hook 'after-save-hook #'long-line-show-or-hide-indicator
+                 'local))
+  (when (eq transient-current-command 'long-line-transient)
+    (transient--redisplay)))
+
+;;;###autoload (autoload 'long-line-transient "long-line" nil t)
+(transient-define-prefix long-line-transient ()
+  "Command dispatcher for `long-line-mode'."
+  :transient-suffix #'transient--do-call
+  :transient-non-suffix #'transient--do-exit
+  [[("f" long-line-transient-set-fill-column
+     :description
+     (lambda ()
+       (concat "Fill column "
+               (propertize
+                (format "%s" fill-column)
+                'face
+                'transient-argument))))
+    ("m" "Toggle long line mode" long-line-mode)]
+   [("n" "Next long line" long-line-next-or-prev-long)
+    ("p" "Previous long line" long-line-prev-or-next-long)
+    ("q" "Quit" transient-quit-all)]])
 
 (provide 'long-line)
 ;;; long-line.el ends here
