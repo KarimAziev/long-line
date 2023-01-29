@@ -6,7 +6,7 @@
 ;; URL: https://github.com/KarimAziev/long-line
 ;; Keywords: lisp, convenience
 ;; Version: 0.1.1
-;; Package-Requires: ((emacs "27.1"))
+;; Package-Requires: ((emacs "28.1"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -344,11 +344,12 @@ Return new position if changed, nil otherwise."
            (long-line-find-place-to-split)
            (point)))))
 
+;;;###autoload
 (defun long-line-transient-set-fill-column ()
   "Interactivelly set fill column."
   (interactive)
   (funcall-interactively
-   'set-fill-column
+   #'set-fill-column
    (read-number
     (format
      "Fill column (%s): "
