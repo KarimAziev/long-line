@@ -380,27 +380,40 @@ show it, else hide."
                   nil
                   'local))
     (remove-hook 'after-save-hook #'long-line-show-or-hide-indicator
-                 'local))
+                 'local)
+    (display-fill-column-indicator-mode -1))
   (when (eq transient-current-command 'long-line-transient)
     (transient--redisplay)))
+
+(defun long-line-mode-description ()
+  "Return description for transient."
+  (let ((description "Long Line Mode"))
+    (propertize
+     description
+     'face
+     (if long-line-mode
+         'success
+       'transient-inactive-value))))
+
 
 ;;;###autoload (autoload 'long-line-transient "long-line" nil t)
 (transient-define-prefix long-line-transient ()
   "Command dispatcher for `long-line-mode'."
   :transient-suffix #'transient--do-call
   :transient-non-suffix #'transient--do-exit
-  [[("f" long-line-transient-set-fill-column
-     :description
-     (lambda ()
-       (concat "Fill column "
-               (propertize
-                (format "%s" fill-column)
-                'face
-                'transient-argument))))
-    ("m" "Toggle long line mode" long-line-mode)]
-   [("n" "Next long line" long-line-next-or-prev-long)
-    ("p" "Previous long line" long-line-prev-or-next-long)
-    ("q" "Quit" transient-quit-all)]])
+  [("m" long-line-mode
+    :description long-line-mode-description
+    :transient t)
+   ("f" long-line-transient-set-fill-column
+    :description
+    (lambda ()
+      (concat "Fill column "
+              (propertize
+               (format "%s" fill-column)
+               'face
+               'transient-argument))))]
+  [("n" "Next long line" long-line-next-or-prev-long :transient t)
+   ("p" "Previous long line" long-line-prev-or-next-long :transient t)])
 
 (provide 'long-line)
 ;;; long-line.el ends here
