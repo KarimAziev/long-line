@@ -206,9 +206,9 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
 
 (defun long-line-on-doc-string-p ()
   "Return non-nil if point is inside doc string."
-  (save-excursion
-    (when-let* ((pos (point))
-                (char (nth 3 (syntax-ppss (point)))))
+  (when-let* ((pos (point))
+              (char (nth 3 (syntax-ppss pos))))
+    (save-excursion
       (when (progn (ignore-errors (up-list (- 1) t t))
                    (let ((new-pos (point)))
                      (and (not (= pos new-pos))
@@ -217,8 +217,8 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
                           (when (long-line-move-with
                                  'backward-up-list 1)
                             (let ((s (sexp-at-point)))
-                              (when (and (listp s)
-                                         (symbolp (car s)))
+                              (when (and (car-safe s)
+                                         (symbolp (car-safe s)))
                                 (cdr (assoc (symbol-name
                                              (car s))
                                             long-line-doc))))))))
