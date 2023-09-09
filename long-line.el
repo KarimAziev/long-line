@@ -351,7 +351,7 @@ Return new position if changed, nil otherwise."
              (funcall long-line-message-function
                       "Long line of %d columns found"
                       line-length))
-           (skip-chars-backward "  \n")
+           (skip-chars-backward "\s\t\r\f\n")
            (long-line-find-place-to-split)
            (point)))))
 
