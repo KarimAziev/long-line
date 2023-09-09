@@ -232,12 +232,23 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
       (if (< line-length fill-column)
           line-length
         (backward-char (- line-length fill-column))
-        (if (or
-             (when (nth 3 (syntax-ppss (point)))
-               (not (long-line-on-doc-string-p)))
-             (nth 4 (syntax-ppss (point))))
-            (1- fill-column)
-          line-length)))))
+        (let* ((stx (syntax-ppss (point)))
+               (inside-str (nth 3 stx))
+               (inside-comment (nth 4 stx)))
+          (cond (inside-comment (1- fill-column))
+                ((long-line-on-doc-string-p)
+                 (let ((doc-line
+                        (buffer-substring-no-properties
+                         (line-beginning-position)
+                         (line-end-position))))
+                   (when
+                       (and (string-match-p "[\s\t]*\"" doc-line)
+                            (not (nth 3 (syntax-ppss (line-beginning-position)))))
+                     (setq doc-line (substring-no-properties (string-trim-left doc-line) 1)))
+                   (length doc-line)))
+                (inside-str
+                 (1- fill-column))
+                (t line-length)))))))
 
 (defun long-line-move-with (fn &optional n)
   "Move by calling FN N times.
