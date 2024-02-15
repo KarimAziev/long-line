@@ -231,7 +231,7 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
                               (current-column))))
       (if (< line-length fill-column)
           line-length
-        (backward-char (- line-length fill-column))
+        (move-to-column fill-column)
         (let* ((stx (syntax-ppss (point)))
                (inside-str (nth 3 stx))
                (inside-comment (nth 4 stx)))
