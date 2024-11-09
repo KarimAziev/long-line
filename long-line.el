@@ -213,7 +213,7 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
                    (let ((new-pos (point)))
                      (and (not (= pos new-pos))
                           (equal char (char-after new-pos)))))
-        (when-let ((pos (save-excursion
+        (when-let* ((pos (save-excursion
                           (when (long-line-move-with
                                  'backward-up-list 1)
                             (let ((s (sexp-at-point)))
@@ -254,13 +254,13 @@ Arguments BOUND, NOERROR, COUNT has the same meaning as `re-search-forward'."
   "Move by calling FN N times.
 Return new position if changed, nil otherwise."
   (unless n (setq n 1))
-  (when-let ((str-start (nth 8 (syntax-ppss (point)))))
+  (when-let* ((str-start (nth 8 (syntax-ppss (point)))))
     (goto-char str-start))
   (let ((init-pos (point))
         (pos)
         (count n))
     (while (and (not (= count 0))
-                (when-let ((end (ignore-errors
+                (when-let* ((end (ignore-errors
                                   (funcall fn)
                                   (point))))
                   (unless (= end (or pos init-pos))
